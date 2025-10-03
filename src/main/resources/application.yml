@@ -1,0 +1,68 @@
+server:
+  port: 8081
+
+spring:
+  datasource:
+    url: jdbc:postgresql://localhost:55432/tb_vigilancia
+    username: postgres          # <-- ajusta si usas otro usuario
+    password: secret            # <-- ajusta tu password real
+    driver-class-name: org.postgresql.Driver
+
+  jpa:
+    open-in-view: false         # buena práctica
+    hibernate:
+      ddl-auto: validate        # valida el schema (cámbialo a update/create-drop si lo necesitas)
+    properties:
+      hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
+      hibernate.jdbc.time_zone: UTC
+
+  sql:
+    init:
+      mode: never               # no ejecutar scripts automáticos
+
+  # Recursos estáticos (cache busting por hash de archivo; útil para Vite/React/Angular)
+  web:
+    resources:
+      cache:
+        period: 365d
+      chain:
+        enabled: true
+        strategy:
+          content:
+            enabled: true
+            paths: "/**"
+
+# ===== Seguridad propia (JWT) =====
+security:
+  jwt:
+    issuer: tb.vc
+    # Si no exportas JWT_SECRET en el entorno, usará este por defecto.
+    # Reemplázalo por uno largo (32+ chars) en PROD.
+    secret: ${JWT_SECRET:change_me_super_long_32_chars_min_2025_xxxxxxxxxxxxx}
+    access-minutes: 60
+    refresh-days: 7
+
+# Config propia para cookies (si guardas el token en cookie)
+app:
+  cookie:
+    secure: false               # en PROD con HTTPS => true
+    same-site: Strict           # o Lax según tu flujo
+
+# ===== CORS =====
+# Solo aplica si el front NO sale del mismo origen (p. ej., lo sirves desde :5173 o :3000).
+# Si sirves todo desde 8081, esto prácticamente no se usa, pero no molesta.
+cors:
+  allowed-origins: "http://localhost:5173,http://localhost:3000"
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info
+
+logging:
+  level:
+    org.springframework.security: INFO
+    # org.hibernate.SQL: DEBUG      # descomenta para ver SQL
+    # org.springframework.web: DEBUG
+    # org.springframework.web.servlet.resource: DEBUG
