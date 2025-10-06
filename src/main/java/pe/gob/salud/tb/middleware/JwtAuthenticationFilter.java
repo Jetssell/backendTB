@@ -23,29 +23,41 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
   @Override
   protected boolean shouldNotFilter(HttpServletRequest request) {
-    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true; // preflight
     String p = request.getRequestURI();
-    // Esta chain solo se registra en /api/**, pero igual excluimos auth pública
-    return p.startsWith("/api/auth/");
+    if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true; // preflight CORS
+
+    // Rutas públicas: login/logout (NO excluir /api/auth/me)
+    if (p.equals("/api/auth/login") || p.equals("/api/auth/logout")) return true;
+
+    // Doc/health (vía appChain igualmente están permitidas)
+    if (p.startsWith("/v3/api-docs") || p.startsWith("/swagger-ui") || p.startsWith("/actuator"))
+      return true;
+
+    return false; // el resto pasa por el filtro (incluye /api/auth/me)
   }
 
   @Override
   protected void doFilterInternal(HttpServletRequest req, HttpServletResponse res, FilterChain chain)
       throws ServletException, IOException {
 
-    String token = resolveToken(req); // Authorization, cookie tb_token, ?access_token
+    String token = resolveToken(req); // Authorization -> cookie tb_token -> ?access_token=
     if (token != null) {
       try {
         Map<String,Object> claims = jwtService.parseClaims(token);
 
-        String uid = (String) Optional.ofNullable(claims.get("sub")).orElse(claims.get("uid"));
-        Collection<SimpleGrantedAuthority> auths = new ArrayList<>();
+        // uid desde sub o uid
+        String uid = (String) Optional.ofNullable(claims.get("sub"))
+            .orElse(claims.get("uid"));
 
+        // role puede ser lista o string
         Object rolesObj = claims.get("role");
+        Collection<SimpleGrantedAuthority> auths = new ArrayList<>();
         if (rolesObj instanceof Collection<?> c) {
           for (Object r : c) if (r != null) auths.add(new SimpleGrantedAuthority("ROLE_" + r.toString()));
         } else if (rolesObj instanceof String s && !s.isBlank()) {
           for (String r : s.split(",")) auths.add(new SimpleGrantedAuthority("ROLE_" + r.trim()));
+        } else if (rolesObj != null) {
+          auths.add(new SimpleGrantedAuthority("ROLE_" + rolesObj.toString()));
         }
 
         if (uid != null) {
@@ -53,7 +65,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           SecurityContextHolder.getContext().setAuthentication(auth);
         }
       } catch (Exception ex) {
-        SecurityContextHolder.clearContext(); // token inválido -> seguirá como anónimo
+        SecurityContextHolder.clearContext(); // token inválido
       }
     }
     chain.doFilter(req,res);
@@ -71,7 +83,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
       }
     }
-    String q = req.getParameter("access_token");
+    String q = req.getParameter("access_token"); // útil para pruebas
     if (q != null && !q.isBlank()) return q;
 
     return null;

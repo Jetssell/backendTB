@@ -1,32 +1,31 @@
 package pe.gob.salud.tb.application.service;
 
 import org.springframework.stereotype.Service;
-import pe.gob.salud.tb.api.dto.auth.LoginResponse;
 import pe.gob.salud.tb.domain.model.User;
 import pe.gob.salud.tb.domain.port.PasswordHasherPort;
 import pe.gob.salud.tb.domain.port.UserReaderPort;
-import pe.gob.salud.tb.middleware.JwtService;
 import pe.gob.salud.tb.shared.error.ApiException;
 import pe.gob.salud.tb.shared.error.ErrorCode;
 
 import java.util.List;
-import java.util.Map;
 
 @Service
 public class AuthService {
 
   private final UserReaderPort users;       // puerto (no repo/entity)
   private final PasswordHasherPort hasher;  // puerto de hashing
-  private final JwtService jwt;
 
-  public AuthService(UserReaderPort users, PasswordHasherPort hasher, JwtService jwt) {
+  public AuthService(UserReaderPort users, PasswordHasherPort hasher) {
     this.users  = users;
     this.hasher = hasher;
-    this.jwt    = jwt;
   }
 
-  public LoginResponse login(String username, String rawPassword) {
-    // 1) validar credenciales sólo con el hash (no toco entidades)
+  /** Compacto para el controlador (uid no se devuelve en body, solo en JWT/cookie) */
+  public record AuthInfo(String uid, String name, String role) {}
+
+  /** Autentica y entrega uid/name/role, sin token (el controller emite el JWT y cookie). */
+  public AuthInfo authenticate(String username, String rawPassword) {
+    // 1) validar credenciales solo con el hash
     String hash = users.passwordHashOf(username);
     if (hash == null || !hasher.matches(rawPassword, hash)) {
       throw new ApiException(ErrorCode.AUTH_INVALID_CREDENTIALS, "credenciales_invalidas");
@@ -42,14 +41,11 @@ public class AuthService {
     }
 
     String uid = u.id();
-    // si ya añadiste name() al modelo, usa: String name = u.name();
-    String name = u.username(); // fallback
+    String name = (u.name() != null && !u.name().isBlank()) ? u.name() : u.username();
+
     List<String> roles = (u.roles() == null) ? List.of() : u.roles();
     String role = roles.isEmpty() ? "USER" : roles.get(0);
 
-    // JWT mínimo
-    String token = jwt.issue(uid, Map.of("uid", uid, "role", role));
-
-    return new LoginResponse(uid, name, role, token);
+    return new AuthInfo(uid, name, role);
   }
 }
