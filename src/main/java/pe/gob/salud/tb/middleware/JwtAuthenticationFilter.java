@@ -25,15 +25,11 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   protected boolean shouldNotFilter(HttpServletRequest request) {
     String p = request.getRequestURI();
     if ("OPTIONS".equalsIgnoreCase(request.getMethod())) return true; // preflight CORS
-
-    // Rutas públicas: login/logout (NO excluir /api/auth/me)
     if (p.equals("/api/auth/login") || p.equals("/api/auth/logout")) return true;
-
-    // Doc/health (vía appChain igualmente están permitidas)
-    if (p.startsWith("/v3/api-docs") || p.startsWith("/swagger-ui") || p.startsWith("/actuator"))
+    if (p.startsWith("/api/catalogos/")) return true; // catálogos públicos
+    if (p.startsWith("/api/v3/api-docs") || p.startsWith("/api/swagger-ui") || p.startsWith("/api/actuator"))
       return true;
-
-    return false; // el resto pasa por el filtro (incluye /api/auth/me)
+    return false;
   }
 
   @Override
@@ -45,12 +41,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       try {
         Map<String,Object> claims = jwtService.parseClaims(token);
 
-        // uid desde sub o uid
-        String uid = (String) Optional.ofNullable(claims.get("sub"))
-            .orElse(claims.get("uid"));
-
-        // role puede ser lista o string
+        String uid = (String) Optional.ofNullable(claims.get("sub")).orElse(claims.get("uid"));
         Object rolesObj = claims.get("role");
+
         Collection<SimpleGrantedAuthority> auths = new ArrayList<>();
         if (rolesObj instanceof Collection<?> c) {
           for (Object r : c) if (r != null) auths.add(new SimpleGrantedAuthority("ROLE_" + r.toString()));
@@ -65,7 +58,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
           SecurityContextHolder.getContext().setAuthentication(auth);
         }
       } catch (Exception ex) {
-        SecurityContextHolder.clearContext(); // token inválido
+        SecurityContextHolder.clearContext(); // token inválido -> seguimos sin auth
       }
     }
     chain.doFilter(req,res);
@@ -83,7 +76,8 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         }
       }
     }
-    String q = req.getParameter("access_token"); // útil para pruebas
+
+    String q = req.getParameter("access_token");
     if (q != null && !q.isBlank()) return q;
 
     return null;

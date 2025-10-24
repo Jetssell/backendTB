@@ -15,6 +15,7 @@ spring:
     properties:
       hibernate.dialect: org.hibernate.dialect.PostgreSQLDialect
       hibernate.jdbc.time_zone: UTC
+     
 
   sql:
     init:
@@ -38,12 +39,10 @@ security:
     access-minutes: 60
     refresh-days: 7
 
-# Para DEV REMOTO (front y API en orígenes distintos):
-# - SameSite=None requiere Secure=true y llamadas con credentials:'include'
-# - Si tu API NO está en HTTPS, usa túnel/ngrok o un proxy de Vite para mismo origen.
+
 app:
   cookie:
-    secure: true          # si usas devtunnels/HTTPS => true; mismo origen local podría ser false
+    secure: true          # Devtunnels/HTTPS => true; mismo origen local podría ser false
     same-site: none       # para front en otro origen/puerto (Vite 5173, devtunnels, etc.)
 
 
