@@ -44,7 +44,7 @@ public class SecurityConfig {
     cfg.setAllowedOrigins(allowed);
     cfg.setAllowedMethods(List.of("GET","POST","PUT","PATCH","DELETE","OPTIONS"));
     cfg.setAllowedHeaders(List.of("Content-Type","Authorization","X-Requested-With"));
-    cfg.setAllowCredentials(true); // necesario para cookies cross-site
+    cfg.setAllowCredentials(true);
     cfg.setMaxAge(3600L);
 
     UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();
@@ -68,13 +68,24 @@ public class SecurityConfig {
           // Público: login/logout
           .requestMatchers("/api/auth/login", "/api/auth/logout").permitAll()
 
-          // Público: catálogos (filtros/autocomplete)
+          // Público: catálogos (selects en cascada + autocomplete)
           .requestMatchers("/api/catalogos/**").permitAll()
 
-          // (Opcional) público: doc/health
+          // Público: KPIs/Serie/Personas/Calidad (tus pantallas abiertas)
+          .requestMatchers(
+              "/api/calculos/tb/**",
+              "/api/calculos/data-quality/**",
+              "/api/personas/**"
+              // "/api/mapa/**"  <-- cuando tengas datos geográficos y quieras abrirlo
+          ).permitAll()
+
+          // Solo ADMIN: todo lo bajo /api/admin/** (y deja preparada ruta de cálculos admin)
+          .requestMatchers("/api/admin/**", "/api/calculos/admin/**").hasRole("ADMIN")
+
+          // Público: docs/health
           .requestMatchers("/api/actuator/**","/api/v3/api-docs/**","/api/swagger-ui/**","/api/swagger-ui.html").permitAll()
 
-          // El resto protegido
+          // Lo demás requiere auth (por si agregas endpoints nuevos y te olvidas)
           .anyRequest().authenticated()
       );
 

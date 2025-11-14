@@ -13,76 +13,62 @@ import java.util.Map;
 public class CatalogosController {
 
   private final CatalogosService svc;
+  public CatalogosController(CatalogosService svc) { this.svc = svc; }
 
-  public CatalogosController(CatalogosService svc) {
-    this.svc = svc;
-  }
-
- 
-
-  /** Precarga: devuelve todas las listas (diris, provincias, distritos) */
+  // ===== Precarga =====
   @GetMapping("/ambitos")
-  public Ambitos ambitos() {
-    return svc.ambitos();
-  }
+  public Ambitos ambitos() { return svc.ambitos(); }
 
-  /** Lista DIRIS */
+  // ===== Listas simples =====
   @GetMapping("/diris")
-  public List<String> diris() {
-    return svc.diris();
-  }
+  public List<String> diris() { return svc.diris(); }
 
-  /** Provincias (opcionalmente filtradas por DIRIS) */
   @GetMapping("/provincias")
   public List<String> provincias(@RequestParam(required = false) String diris) {
     return svc.provincias(diris);
   }
 
-  /** Distritos (opcionalmente por DIRIS y/o Provincia) */
   @GetMapping("/distritos")
-  public List<String> distritos(@RequestParam(required = false) String diris,
-                                @RequestParam(required = false, name = "provincia") String provincia) {
-    return svc.distritos(diris, provincia);
+  public List<String> distritos(
+      @RequestParam(required = false) String diris,
+      // acepta "prov" o "provincia"
+      @RequestParam(required = false) String prov,
+      @RequestParam(required = false, name = "provincia") String provincia
+  ) {
+    String provFinal = (prov != null && !prov.isBlank()) ? prov : provincia;
+    return svc.distritos(diris, provFinal);
   }
 
-  /**
-   * Autocomplete EESS
-   * Ej: /api/catalogos/eess?diris=LIMA%20SUR&prov=VILLA%20EL%20SALVADOR&q=posta&limit=20
-   */
+  // ===== Autocomplete EESS =====
   @GetMapping("/eess")
-  public Map<String, Object> eess(@RequestParam(required = false) String diris,
-                                  @RequestParam(required = false, name = "prov") String provincia,
-                                  @RequestParam(required = false, name = "dist") String distrito,
-                                  @RequestParam(required = false, name = "q") String query,
-                                  @RequestParam(required = false, defaultValue = "20") int limit) {
-    List<Eess> data = svc.eess(diris, provincia, distrito, query, limit);
+  public Map<String, Object> eess(
+      @RequestParam(required = false) String diris,
+      // acepta "prov" o "provincia"
+      @RequestParam(required = false) String prov,
+      @RequestParam(required = false, name = "provincia") String provincia,
+      // acepta "dist" o "distrito"
+      @RequestParam(required = false) String dist,
+      @RequestParam(required = false, name = "distrito") String distrito,
+      @RequestParam(required = false, name = "q") String query,
+      @RequestParam(required = false, defaultValue = "100") int limit
+  ) {
+    String provFinal = (prov != null && !prov.isBlank()) ? prov : provincia;
+    String distFinal = (dist != null && !dist.isBlank()) ? dist : distrito;
+
+    List<Eess> data = svc.eess(diris, provFinal, distFinal, query, limit);
     return Map.of("items", data, "total", data.size());
   }
 
- 
+  // ===== Listas "all" (sin filtros) =====
+  @GetMapping("/diris/all")       public List<String> allDiris()       { return svc.allDiris(); }
+  @GetMapping("/provincias/all")  public List<String> allProvincias()  { return svc.allProvincias(); }
+  @GetMapping("/distritos/all")   public List<String> allDistritos()   { return svc.allDistritos(); }
 
-  /** Todas las DIRIS */
-  @GetMapping("/diris/all")
-  public List<String> allDiris() {
-    return svc.allDiris();
-  }
-
-  /** Todas las provincias (sin filtrar) */
-  @GetMapping("/provincias/all")
-  public List<String> allProvincias() {
-    return svc.allProvincias();
-  }
-
-  /** Todos los distritos (sin filtrar) */
-  @GetMapping("/distritos/all")
-  public List<String> allDistritos() {
-    return svc.allDistritos();
-  }
-
-  /** Todos los EESS (con búsqueda opcional y límite) */
   @GetMapping("/eess/all")
-  public Map<String, Object> allEess(@RequestParam(required = false, name = "q") String query,
-                                     @RequestParam(required = false, defaultValue = "200") int limit) {
+  public Map<String, Object> allEess(
+      @RequestParam(required = false, name = "q") String query,
+      @RequestParam(required = false, defaultValue = "200") int limit
+  ) {
     List<Eess> data = svc.allEess(query, limit);
     return Map.of("items", data, "total", data.size());
   }

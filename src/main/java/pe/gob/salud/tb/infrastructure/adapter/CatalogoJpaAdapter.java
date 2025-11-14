@@ -13,7 +13,9 @@ public class CatalogoJpaAdapter implements CatalogoReaderPort {
 
   private final EstablecimientoRepository repo;
 
-  public CatalogoJpaAdapter(EstablecimientoRepository repo) { this.repo = repo; }
+  public CatalogoJpaAdapter(EstablecimientoRepository repo) {
+    this.repo = repo;
+  }
 
   @Override
   public List<Eess> findEess(String diris, String prov, String dist, String q, int limit) {
@@ -21,7 +23,14 @@ public class CatalogoJpaAdapter implements CatalogoReaderPort {
     int cap = (limit <= 0 ? 200 : limit);
     return rows.stream()
         .limit(cap)
-        .map(r -> new Eess(r.getRenaes(), r.getEess()))
+        .map(r -> new Eess(
+            r.getRenaes(),
+            r.getEess(),
+            /* si getLat()/getLon() devolvieran Number: 
+               r.getLat()==null?null:((Number)r.getLat()).doubleValue(), */
+            r.getLat(),
+            r.getLon()
+        ))
         .toList();
   }
 
@@ -34,9 +43,9 @@ public class CatalogoJpaAdapter implements CatalogoReaderPort {
   }
 
   // ===== NUEVOS: “traer todo” =====
-  @Override public List<String> listAllDiris()       { return repo.findAllDiris(); }
-  @Override public List<String> listAllProvincias()  { return repo.findAllProvincias(); }
-  @Override public List<String> listAllDistritos()   { return repo.findAllDistritos(); }
+  @Override public List<String> listAllDiris()      { return repo.findAllDiris(); }
+  @Override public List<String> listAllProvincias() { return repo.findAllProvincias(); }
+  @Override public List<String> listAllDistritos()  { return repo.findAllDistritos(); }
 
   @Override
   public List<Eess> listAllEess(String q, int limit) {
@@ -44,9 +53,16 @@ public class CatalogoJpaAdapter implements CatalogoReaderPort {
     int cap = (limit <= 0 ? 200 : limit);
     return rows.stream()
         .limit(cap)
-        .map(r -> new Eess(r.getRenaes(), r.getEess()))
+        .map(r -> new Eess(
+            r.getRenaes(),
+            r.getEess(),
+            r.getLat(),
+            r.getLon()
+        ))
         .toList();
   }
 
-  private static String emptyToNull(String s){ return (s==null || s.isBlank()) ? null : s; }
+  private static String emptyToNull(String s) {
+    return (s == null || s.isBlank()) ? null : s;
+  }
 }

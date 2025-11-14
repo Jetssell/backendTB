@@ -3,56 +3,84 @@ package pe.gob.salud.tb.infrastructure.repository;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
-import pe.gob.salud.tb.infrastructure.entity.EstablecimientoEntity;
+import org.springframework.stereotype.Repository;
+import pe.gob.salud.tb.infrastructure.entity.Establecimiento;
 
 import java.util.List;
 
-public interface EstablecimientoRepository extends JpaRepository<EstablecimientoEntity, String> {
+@Repository
+public interface EstablecimientoRepository extends JpaRepository<Establecimiento, String> {
 
-  // Proyección mínima para el autocomplete de EESS
+  // Proyección para el autocomplete EESS
   interface EessRow {
     String getRenaes();
     String getEess();
+    Double getLat();
+    Double getLon();
   }
 
-  // Autocomplete EESS (los filtros pueden venir null)
-  @Query("""
-         select distinct e.renaes as renaes, e.eess as eess
-         from EstablecimientoEntity e
-         where (:diris is null or e.diris = :diris)
-           and (:prov  is null or e.proveEess = :prov)
-           and (:dist  is null or e.distEess  = :dist)
-           and (:q     is null or lower(e.eess) like lower(concat('%', :q, '%')))
-         order by e.eess asc
-         """)
-  List<EessRow> findEess(
-      @Param("diris") String diris,
-      @Param("prov")  String prov,
-      @Param("dist")  String dist,
-      @Param("q")     String q
-  );
-
-  // ===== Listas “en cascada” (ya las tenías) =====
-  @Query("select distinct e.diris from EstablecimientoEntity e where e.diris is not null order by e.diris asc")
+  // ---- Catálogos base ----
+  @Query(value = """
+      SELECT DISTINCT e.diris
+      FROM clinica.establecimientos e
+      WHERE e.diris IS NOT NULL
+      ORDER BY 1
+      """, nativeQuery = true)
   List<String> findAllDiris();
 
-  @Query("select distinct e.proveEess from EstablecimientoEntity e where e.proveEess is not null order by e.proveEess asc")
+  @Query(value = """
+      SELECT DISTINCT e.prove_eess
+      FROM clinica.establecimientos e
+      WHERE e.prove_eess IS NOT NULL
+      ORDER BY 1
+      """, nativeQuery = true)
   List<String> findAllProvincias();
 
-  @Query("select distinct e.distEess from EstablecimientoEntity e where e.distEess is not null order by e.distEess asc")
+  @Query(value = """
+      SELECT DISTINCT e.dist_eess
+      FROM clinica.establecimientos e
+      WHERE e.dist_eess IS NOT NULL
+      ORDER BY 1
+      """, nativeQuery = true)
   List<String> findAllDistritos();
 
-  // ===== Filtros específicos para cascada (por si los usas) =====
-  @Query("select distinct e.proveEess from EstablecimientoEntity e where (:diris is null or e.diris = :diris) and e.proveEess is not null order by e.proveEess asc")
+  // ---- Filtros en cascada ----
+  @Query(value = """
+      SELECT DISTINCT e.prove_eess
+      FROM clinica.establecimientos e
+      WHERE (:diris IS NULL OR e.diris = :diris)
+        AND e.prove_eess IS NOT NULL
+      ORDER BY 1
+      """, nativeQuery = true)
   List<String> findProvinciasByDiris(@Param("diris") String diris);
 
-  @Query("""
-         select distinct e.distEess
-         from EstablecimientoEntity e
-         where (:diris is null or e.diris = :diris)
-           and (:prov  is null or e.proveEess = :prov)
-           and e.distEess is not null
-         order by e.distEess asc
-         """)
-  List<String> findDistritosByDirisAndProv(@Param("diris") String diris, @Param("prov") String prov);
+  @Query(value = """
+      SELECT DISTINCT e.dist_eess
+      FROM clinica.establecimientos e
+      WHERE (:diris IS NULL OR e.diris = :diris)
+        AND (:prov  IS NULL OR e.prove_eess = :prov)
+        AND e.dist_eess IS NOT NULL
+      ORDER BY 1
+      """, nativeQuery = true)
+  List<String> findDistritosBy(@Param("diris") String diris,
+                               @Param("prov")  String provincia);
+
+  // ---- Autocomplete EESS (con lat/lon) ----
+  @Query(value = """
+      SELECT
+          e.renaes  AS renaes,
+          e.eess    AS eess,
+          e.lat     AS lat,
+          e.lon     AS lon
+      FROM clinica.establecimientos e
+      WHERE (:diris IS NULL OR e.diris = :diris)
+        AND (:prov  IS NULL OR e.prove_eess = :prov)
+        AND (:dist  IS NULL OR e.dist_eess  = :dist)
+        AND (:q     IS NULL OR LOWER(e.eess) LIKE LOWER(CONCAT('%', :q, '%')))
+      ORDER BY e.eess
+      """, nativeQuery = true)
+  List<EessRow> findEess(@Param("diris") String diris,
+                         @Param("prov")  String prov,
+                         @Param("dist")  String dist,
+                         @Param("q")     String q);
 }

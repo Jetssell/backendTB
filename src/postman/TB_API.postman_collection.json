@@ -1,0 +1,88 @@
+{
+  "info": {
+    "name": "TB_API",
+    "_postman_id": "e6f6b3a1-dc1e-49f0-9c2c-collection-tb",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "description": "Colecci\u00f3n de endpoints para validar localmente el backend de TB."
+  },
+  "item": [
+    {
+      "name": "Login (Auth)",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "url": {
+          "raw": "http://localhost:8081/api/auth/login",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "api",
+            "auth",
+            "login"
+          ]
+        },
+        "body": {
+          "mode": "raw",
+          "raw": "{\"username\":\"admin\",\"password\":\"12345\"}"
+        }
+      }
+    },
+    {
+      "name": "C\u00e1lculos: Edad-Sexo",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8081/api/calculos/tb/edad-sexo?desde=2024-01-01&hasta=2024-12-31",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "api",
+            "calculos",
+            "tb",
+            "edad-sexo"
+          ],
+          "query": [
+            {
+              "key": "desde",
+              "value": "2024-01-01"
+            },
+            {
+              "key": "hasta",
+              "value": "2024-12-31"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "name": "Cat\u00e1logos: DIRIS",
+      "request": {
+        "method": "GET",
+        "url": {
+          "raw": "http://localhost:8081/api/catalogos/diris",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8081",
+          "path": [
+            "api",
+            "catalogos",
+            "diris"
+          ]
+        }
+      }
+    }
+  ]
+}
